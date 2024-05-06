@@ -35,12 +35,16 @@ def main():
     assert args.dataset in ["LibriSpeech", "EventsAdapt", "Brown"], "dataset has to be LibriSpeech, EventsAdapt or Brown"
 
     if not args.which_masking == "original":
-        assert not args.model.startswith('gpt'), 'Adjusted PLL metric is only defined for MLM models!'
+        assert not (args.model.startswith('gpt') or args.model.startswith('facebook')) , 'Adjusted PLL metric is only defined for MLM models!'
 
-    if args.model.startswith('gpt'):
+    if args.model.startswith('facebook'):
         model = scorer.IncrementalLMScorer(args.model, 'cpu')
+        print("Using Facebook model")
+        print(args.which_masking)
     elif re.search('bert', args.model):
         model = scorer.MaskedLMScorer(args.model, 'cpu')
+    elif re.search('gpt', args.model):
+        model = scorer.IncrementalLMScorer(args.model, 'cpu')
     else:
         raise NotImplementedError
 
@@ -86,7 +90,7 @@ def main():
 
     for batch in tqdm(stimuli_dl):
         curr_sent_idxs, curr_stimuli = batch
-        if not args.model.startswith('gpt'):  # if mlm model
+        if not (args.model.startswith('facebook') or args.model.startswith('gpt')):  # if mlm model
             curr_scores, curr_token_lengths = model.sequence_score(curr_stimuli, which_masking=args.which_masking,
                                                                    reduction=lambda x: x.sum().item(),
                                                                    output_num_tokens=True)
